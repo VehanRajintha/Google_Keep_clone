@@ -1,6 +1,24 @@
-# Welcome to your Expo app 👋
+# Welcome to My Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+
+![pic](pic.png)
+
+
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=800&pause=1000&color=9122F7&width=435&lines=Google+Keep+Clone)](https://git.io/typing-svg)
+
+ ![repo views](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FVehanRajintha%2FGoogle-Keep&count_bg=%2379C83D&title_bg=%23555555&icon=gitpod.svg&icon_color=%23E7E7E7&title=Views&edge_flat=false)
+
+
+![forks](https://img.shields.io/github/forks/VehanRajintha/Google-Keep?label=Forks&style=social)
+![stars](https://img.shields.io/github/stars/VehanRajintha/Google-Keep?style=social)
+
+![size](https://img.shields.io/github/repo-size/VehanRajintha/Google-Keep?color=purple&label=Repo%20Size&style=plastic)
+![license](https://img.shields.io/github/license/VehanRajintha/Google-Keep?color=purple&label=License&style=plastic)
+![developer](https://img.shields.io/static/v1?label=Author&message=Vehan%20Rajintha&color=purple&style=plastic)
+
+
+
 
 ## Get started
 
