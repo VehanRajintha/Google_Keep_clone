@@ -1,102 +1,166 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Image, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
+import { TabTransition } from '../components/TabTransition';
+import { collection, addDoc, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { auth, db } from '@/config/firebase';
+import { AddReminderModal } from '../components/AddReminderModal';
+import { api } from '@/utils/api';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+interface Reminder {
+  id: string;
+  title: string;
+  message: string;
+  dateTime: Date;
+  userId: string;
+}
 
-export default function TabTwoScreen() {
+export default function ReminderScreen() {
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const fetchReminders = async () => {
+      try {
+        const remindersList = await api.getReminders();
+        if (!Array.isArray(remindersList)) {
+          throw new Error('Invalid response format');
+        }
+        setReminders(remindersList);
+      } catch (error) {
+        console.error("Error fetching reminders:", error);
+        alert('Error loading reminders. Please try again.');
+      }
+    };
+
+    fetchReminders();
+  }, []);
+
+  const scheduleNotification = async (reminder: Reminder) => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: reminder.title,
+        body: reminder.message,
+      },
+      trigger: {
+        date: reminder.dateTime,
+      },
+    });
+  };
+
+  const renderReminder = ({ item }: { item: Reminder }) => (
+    <View style={styles.reminderCard}>
+      <View style={styles.reminderInfo}>
+        <Text style={styles.reminderTitle}>{item.title}</Text>
+        <Text style={styles.reminderMessage}>{item.message}</Text>
+        <Text style={styles.reminderDateTime}>
+          {item.dateTime.toLocaleString()}
+        </Text>
+      </View>
+      <TouchableOpacity>
+        <Ionicons name="trash-outline" size={24} color="#FF6B6B" />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const handleAddReminder = async (title: string, message: string, dateTime: Date) => {
+    try {
+      if (!auth.currentUser) return;
+
+      const reminderData = {
+        title,
+        message,
+        dateTime,
+        userId: auth.currentUser.uid
+      };
+
+      await api.createReminder(reminderData);
+      const updatedReminders = await api.getReminders();
+      setReminders(updatedReminders);
+      setShowAddModal(false);
+      
+      await scheduleNotification({
+        id: 'temp', // The actual ID will come from the server
+        ...reminderData
+      });
+    } catch (error) {
+      console.error('Error adding reminder:', error);
+      alert('Failed to add reminder. Please try again.');
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText> library
-          to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <TabTransition style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Reminders</Text>
+        <TouchableOpacity onPress={() => setShowAddModal(true)}>
+          <Ionicons name="add-circle-outline" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={reminders}
+        renderItem={renderReminder}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.reminderList}
+      />
+      <AddReminderModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleAddReminder}
+      />
+    </TabTransition>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
   },
-  titleContainer: {
+  header: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  reminderList: {
+    padding: 16,
+  },
+  reminderCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 2,
+  },
+  reminderInfo: {
+    flex: 1,
+  },
+  reminderTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  reminderMessage: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  reminderDateTime: {
+    fontSize: 12,
+    color: '#999',
   },
 });
